@@ -1,0 +1,44 @@
+---
+title: 'Prediction Assignment Writeup'
+author: "Anton Votinov"
+date: "22/08/2014"
+output: html_document
+---
+
+
+
+
+## Clearing Data.
+
+The original training dataset is not tidy at all. First of all, there is a variable called "new_window", which takes two values: "yes" and "no". Since number of "yes" values is much lower, than number of "no" values (406 and 19216) and obervations with "yes" are a mistery, rows with "yes" values are deleted.
+
+There are a lot of variables with too many NAs and with no values at all (""). We delete such variables (columns).
+
+Finally, we delete "new_window","cvtd_timestamp" and "X" variables (columns) since they don't give us any useful information.
+
+
+
+```{r}
+library(lattice)
+library(ggplot2)
+library(caret)
+train <- read.csv("pml-training.csv")
+test <- read.csv("pml-testing.csv")
+train1 <- train[train$new_window == "no",]
+train1 <- train1[,colSums(is.na(train1)) < nrow(train1)]
+train1 <- train1[, colSums(  train1 != ""  ) != 0]
+train1 <- subset(train1, select = - c(new_window,cvtd_timestamp,X))
+```
+
+## Fitting model
+
+Random forest was choosen as a prediction model. Cross-validation is used with 5 resampling iterations.
+
+```{r, cache = T}
+trControl <- trainControl(method = "cv", number = 5, allowParallel = TRUE)
+model <- train(classe ~ ., data = train1, method = "rf", trControl = trControl)
+model
+accuracy <- max(model$results[,2])
+```
+
+The estimate of the out of sample error is thought to be accuracy of the model. The accuracy is about `r accuracy` percent.
